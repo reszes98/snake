@@ -9,11 +9,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -28,7 +29,7 @@ import snake.main.potty.*;
  * Map osztály Nagyon sok mindent itt valósítottam meg, kiterjeszti a JPanel
  * osztályt, és az ActionListener osztályt megvalósítja.
  */
-public class Map extends JPanel implements ActionListener {
+public class Map extends JPanel implements ActionListener, Serializable {
 	private static final long serialVersionUID = -5414121732887716310L;
 	final int x = 100;
 	final int y = 100;
@@ -48,19 +49,19 @@ public class Map extends JPanel implements ActionListener {
 	ArrayList<Mereg> M;
 
 	/**
-	 * MyKeyListener 	osztály egy Override miatt van rá szükségünk amúgy a
-	 *					KeyAdaptert specializálja
+	 * MyKeyListener osztály egy Override miatt van rá szükségünk amúgy a
+	 * KeyAdaptert specializálja
 	 * 
 	 * @author eszes
 	 *
 	 */
 	public class MyKeyListener extends KeyAdapter {
 		/**
-		 * keyPressed() 	Itt figyelem a billentyűzet leütéseit, amennyiben bizonyosak pl:
-		 * 					WASD akkor az P1 kígyója kap módosítást UHJK akkor az P2 kígyója kap
-		 * 					módosítást Arrows akkor az P3 kígyója kap módosítást Numpad Arrows akkor az
-		 * 					P4 kígyója kap módosítást Ha F2,F3,F4 lesz leütve akkor új játék 2-3-4
-		 * 					játékossal F1-re indul a játék
+		 * keyPressed() Itt figyelem a billentyűzet leütéseit, amennyiben bizonyosak pl:
+		 * WASD akkor az P1 kígyója kap módosítást UHJK akkor az P2 kígyója kap
+		 * módosítást Arrows akkor az P3 kígyója kap módosítást Numpad Arrows akkor az
+		 * P4 kígyója kap módosítást Ha F2,F3,F4 lesz leütve akkor új játék 2-3-4
+		 * játékossal F1-re indul a játék
 		 * 
 		 */
 		@Override
@@ -137,12 +138,12 @@ public class Map extends JPanel implements ActionListener {
 			case KeyEvent.VK_F4:
 				start(4);
 				break;
-			case KeyEvent.VK_F1:
-				{delay.start();
+			case KeyEvent.VK_F1: {
+				delay.start();
 				Graphics2D g2 = (Graphics2D) getGraphics();
 				g2.scale(7, 7);
 				g2.clearRect(60, 39, 120, 12);
-				}
+			}
 				break;
 			}
 		}
@@ -150,8 +151,8 @@ public class Map extends JPanel implements ActionListener {
 	}
 
 	/**
-	 * fest() 	A függvény kiüríti a map változójú mátrixot és a falakat
-	 * 			visszarajzolja a map2 segítségével
+	 * fest() A függvény kiüríti a map változójú mátrixot és a falakat
+	 * visszarajzolja a map2 segítségével
 	 */
 	public void fest() {
 		for (int k = 0; k < y; k++)
@@ -161,15 +162,15 @@ public class Map extends JPanel implements ActionListener {
 	}
 
 	/**
-	 * Konstruktor 	Innentől figyeljük a billentyűzet leütéseit, inicializáljuk a
-	 * 				változókat, képeket töltünk be, a mátrixot a fileból beolvassuk, és
-	 * 				beállítjuk a Timert
+	 * Konstruktor Innentől figyeljük a billentyűzet leütéseit, inicializáljuk a
+	 * változókat, képeket töltünk be, a mátrixot a fileból beolvassuk, és
+	 * beállítjuk a Timert
 	 */
 	public Map() {
 		addKeyListener(new MyKeyListener());
-		map2= new int[x][y];
+		map2 = new int[x][y];
 		map = new int[x][y];
-		load_map();
+		read();
 		Apple = new ImageIcon("src/apple.png").getImage();
 		Poison = new ImageIcon("src/mereg.png").getImage();
 		Body = new ImageIcon("src/body.png").getImage();
@@ -184,56 +185,61 @@ public class Map extends JPanel implements ActionListener {
 	}
 
 	/**
-	 * save_map() 	a map.txt-be kiírjuk a map tartalmát csak első alkalommal használtam, később
-	 * 				jó lehet ha pálya szerkesztés van engedélyezve
+	 * save_map() a map.txt-be kiírjuk a map tartalmát csak első alkalommal
+	 * használtam, később jó lehet ha pálya szerkesztés van engedélyezve
 	 */
-	public void save_map() {
+	public void write() {
 		try {
-			FileWriter fw = new FileWriter("map.txt");
-			PrintWriter pw = new PrintWriter(fw);
-			for (int i = 0; i < x; i++) {
-				for (int j = 0; j < y; j++)
-					pw.print(map[i][j] + " ");
-
-			}
-			pw.close();
+			/*
+			 * FileWriter fw = new FileWriter("map.txt"); PrintWriter pw = new
+			 * PrintWriter(fw); for (int i = 0; i < x; i++) { for (int j = 0; j < y; j++)
+			 * pw.print(map[i][j] + " ");
+			 * 
+			 * } pw.close();
+			 */
+			FileOutputStream f = new FileOutputStream("map.txt");
+			ObjectOutputStream out = new ObjectOutputStream(f);
+			out.writeObject(map);
+			out.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
 
 	/**
-	 * load_map() 	a map.txt-ből beolvasunk a map és map2 változóba.
+	 * load_map() a map.txt-ből beolvasunk a map és map2 változóba.
 	 */
-	public void load_map() {
+	public void read() {
 		try {
-			FileReader fr = new FileReader("map.txt");
-			BufferedReader br = new BufferedReader(fr);
-			String line = br.readLine();
-			br.close();
-			String[] ss = line.split(" ");
-			int k = 0;
+			/*
+			 * FileReader fr = new FileReader("map.txt"); BufferedReader br = new
+			 * BufferedReader(fr); String line = br.readLine(); br.close(); String[] ss =
+			 * line.split(" "); int k = 0; for (int i = 0; i < x; i++) { for (int j = 0; j <
+			 * y; j++) { map[i][j] = Integer.parseInt(ss[k]); map2[i][j] =
+			 * Integer.parseInt(ss[k]); k++; }
+			 * 
+			 * }
+			 */
+			FileInputStream f = new FileInputStream("map.txt");
+			ObjectInputStream in = new ObjectInputStream(f);
+			map = (int[][]) in.readObject();
+			in.close();
 			for (int i = 0; i < x; i++) {
 				for (int j = 0; j < y; j++) {
-					map[i][j] = Integer.parseInt(ss[k]);
-					map2[i][j] = Integer.parseInt(ss[k]);
-					k++;
+					map2[i][j] = map[i][j];
 				}
-
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 
 	/**
-	 * update() 	első lépésben letisztítjuk a map-ot felesleges kígyó maradványok
-	 * 				után kutatva, majd az S tárolón keresztül az összes kígyót felrajzoljuk a
-	 * 				pályára, amenniben él még, utána következnek az almák és a mérgek ilyen
-	 * 				sorrendben
+	 * update() első lépésben letisztítjuk a map-ot felesleges kígyó maradványok
+	 * után kutatva, majd az S tárolón keresztül az összes kígyót felrajzoljuk a
+	 * pályára, amenniben él még, utána következnek az almák és a mérgek ilyen
+	 * sorrendben
 	 */
 	public void update() {
 		int tempx;
@@ -264,10 +270,11 @@ public class Map extends JPanel implements ActionListener {
 		}
 
 	}
-/**
- * almasit()	amennyiben meghívtuk feltölti 4 darab almával a tárolót, ügyelve a random
- * 				elhelyezkedésre, és ne legyen előtte semmi ott a térképen(vagyis 0 ).
- */
+
+	/**
+	 * almasit() amennyiben meghívtuk feltölti 4 darab almával a tárolót, ügyelve a
+	 * random elhelyezkedésre, és ne legyen előtte semmi ott a térképen(vagyis 0 ).
+	 */
 	public void almasit() {
 		Random r = new Random();
 		for (int i = 0; i < 4;) {
@@ -279,10 +286,12 @@ public class Map extends JPanel implements ActionListener {
 			}
 		}
 	}
-/**
- * mergesti() 	amennyiben meghívtuk feltölti 4 darab mereggel a tárolót, ügyelve a random
- * 				elhelyezkedésre, és ne legyen előtte semmi ott a térképen(vagyis 0 ).
- */
+
+	/**
+	 * mergesti() amennyiben meghívtuk feltölti 4 darab mereggel a tárolót, ügyelve
+	 * a random elhelyezkedésre, és ne legyen előtte semmi ott a térképen(vagyis 0
+	 * ).
+	 */
 	public void mergesit() {
 		Random r = new Random();
 		for (int i = 0; i < 4;) {
@@ -294,24 +303,27 @@ public class Map extends JPanel implements ActionListener {
 			}
 		}
 	}
-/**
- * lep() 	szól minden kígyónak hogy lépjenek, updateli a map-ot, és szól a grafikának hogy 
- * 			rajzoljon.
- */
+
+	/**
+	 * lep() szól minden kígyónak hogy lépjenek, updateli a map-ot, és szól a
+	 * grafikának hogy rajzoljon.
+	 */
 	public void lep() {
 		for (int i = 0; i < S.size(); i++)
 			S.get(i).move();
 		update();
 		paintComponent(getGraphics());
 	}
-/**
- * collision()	végig meg az összes kígyón, megnézi az irány vektorukat, és az alapján megnézi
- * 				mi lenne a következő hely ahova lépne(fejjel), amennyiben ott nem 0 van, elkezdi
- * 				vizsgálni, hogy alma, méreg, kígyó, ha alma vagy méreg, akkor megeteti, törli az
- * 				almát vagy mérget a tárolójából, és folytatja. Ha kígyó, akkor 2 részre esik a 
- * 				folytatás, megvizsgáljuk ki a másik kígyó, ha más akkor megeszi, a másik kígyót
- * 				halottá nyílvánítjuk, ha önmaga akkor csak meghal.
- */
+
+	/**
+	 * collision() végig meg az összes kígyón, megnézi az irány vektorukat, és az
+	 * alapján megnézi mi lenne a következő hely ahova lépne(fejjel), amennyiben ott
+	 * nem 0 van, elkezdi vizsgálni, hogy alma, méreg, kígyó, ha alma vagy méreg,
+	 * akkor megeteti, törli az almát vagy mérget a tárolójából, és folytatja. Ha
+	 * kígyó, akkor 2 részre esik a folytatás, megvizsgáljuk ki a másik kígyó, ha
+	 * más akkor megeszi, a másik kígyót halottá nyílvánítjuk, ha önmaga akkor csak
+	 * meghal.
+	 */
 	public void collision() {
 		int e;
 		int x = 0;
@@ -360,14 +372,16 @@ public class Map extends JPanel implements ActionListener {
 		}
 
 	}
-/**
- * start()	ez a függvény indítja a játékot, először megállítja a delayt, ugyanis ha játszottunk
- * 			egy játékot és egy újabbat indítunk akkor el fog indulni magától, nem várva ránk,
- * 			utána a régi játékot töröljük a képernyőről, majd a kígyókat, almákat, mérgeket
- * 			hozzáadjuk a tárolóhoz, és F1-re várva indulhat a játék
- * 			
- * @param j	játékosok száma
- */
+
+	/**
+	 * start() ez a függvény indítja a játékot, először megállítja a delayt, ugyanis
+	 * ha játszottunk egy játékot és egy újabbat indítunk akkor el fog indulni
+	 * magától, nem várva ránk, utána a régi játékot töröljük a képernyőről, majd a
+	 * kígyókat, almákat, mérgeket hozzáadjuk a tárolóhoz, és F1-re várva indulhat a
+	 * játék
+	 * 
+	 * @param j játékosok száma
+	 */
 	public void start(int j) {
 		if (j < 5) {
 			// fest();
@@ -395,18 +409,22 @@ public class Map extends JPanel implements ActionListener {
 		}
 
 	}
-/**
- * erase() 		az egész képernyőt törli
- * @param g 	a Grafikus osztály amivel rajzolunk
- */
+
+	/**
+	 * erase() az egész képernyőt törli
+	 * 
+	 * @param g a Grafikus osztály amivel rajzolunk
+	 */
 	public void erase(Graphics g) {
 		g.clearRect(0, 0, 2000, 1000);
 	}
-/**
- * paintComponent()	A Graphics2D-t használom, ugyanis lehet scalelni vagyis nagyítani.
- * 					Innen hívom a Draw() függvényt
- * @param g			a Grafikus osztály amivel rajzolunk
- */
+
+	/**
+	 * paintComponent() A Graphics2D-t használom, ugyanis lehet scalelni vagyis
+	 * nagyítani. Innen hívom a Draw() függvényt
+	 * 
+	 * @param g a Grafikus osztály amivel rajzolunk
+	 */
 	@Override
 	public void paintComponent(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g;
@@ -414,10 +432,12 @@ public class Map extends JPanel implements ActionListener {
 		Draw(g2);
 
 	}
-/**
- * lastone()	megnézi a kígyók között hány játékos van még játékban
- * @return cnt	hány kígyó van még játékban
- */
+
+	/**
+	 * lastone() megnézi a kígyók között hány játékos van még játékban
+	 * 
+	 * @return cnt hány kígyó van még játékban
+	 */
 	public int lastone() {
 		int cnt = 0;
 		for (int i = 0; i < S.size(); i++)
@@ -425,21 +445,22 @@ public class Map extends JPanel implements ActionListener {
 				cnt++;
 		return cnt;
 	}
-/**
- * mxdraw() 	szóval a függvény kissé bonyolult, alapjában ő rajzolja ki a kis ablakokat, amit
- * 				minden játékos lát a saját kígyójáról, ezt kiszámolni élvezet volt.
- * 				Nagyjából úgy csinálja a kígyóra amit meghívtuk, megnézi a hosszát, ami max 10 
- * 				legyen a kirajzolás elférése végett. 
- * 				Ezután a kígyó referencia pontjától egészen a 4*testhossz+referenciapont+1 ig
- * 				nézzük a mátrixot, és ahol van valami vagy nincs semmi ott a képeink közül
- * 				valamelyiket kirajzoljuk, az i vagy j+ kezdő koordináta-referencia koordináta 
- * 				pontra. Ez így jó.
- * 				
- * @param g 	grafikus osztály ami rajzol
- * @param s		egy kígyó
- * @param sx 	kezdő pozició x koordinátája
- * @param sy 	kezdő pozició y koordinátája
- */
+
+	/**
+	 * mxdraw() szóval a függvény kissé bonyolult, alapjában ő rajzolja ki a kis
+	 * ablakokat, amit minden játékos lát a saját kígyójáról, ezt kiszámolni élvezet
+	 * volt. Nagyjából úgy csinálja a kígyóra amit meghívtuk, megnézi a hosszát, ami
+	 * max 10 legyen a kirajzolás elférése végett. Ezután a kígyó referencia
+	 * pontjától egészen a 4*testhossz+referenciapont+1 ig nézzük a mátrixot, és
+	 * ahol van valami vagy nincs semmi ott a képeink közül valamelyiket
+	 * kirajzoljuk, az i vagy j+ kezdő koordináta-referencia koordináta pontra. Ez
+	 * így jó.
+	 * 
+	 * @param g  grafikus osztály ami rajzol
+	 * @param s  egy kígyó
+	 * @param sx kezdő pozició x koordinátája
+	 * @param sy kezdő pozició y koordinátája
+	 */
 	public void mxdraw(Graphics2D g, Snake s, int sx, int sy) {
 		if (start == 1 && S.size() > 1) {
 			int a;
@@ -467,15 +488,16 @@ public class Map extends JPanel implements ActionListener {
 			}
 		}
 	}
-/**
- * Draw()	ha elindult a játék és még játékban vagyunk akkor kiírjuk a játékosok eredményét,
- * 			ügyelve, hogy csak annyit ahányan játszanak, majd ezeket töröljük is, így frissítve
- * 			az eredményt.
- * 			Ha már vége a játéknak akkor az eredményt írjuk ki.
- * 			Illetve ha még nem indult el a játék de már megadtuk hányan vagyunk, akkor kiírjuk,
- * 			hogy F1-et legyen szives.
- * @param g a grafikus osztály amivel rajzolunk
- */
+
+	/**
+	 * Draw() ha elindult a játék és még játékban vagyunk akkor kiírjuk a játékosok
+	 * eredményét, ügyelve, hogy csak annyit ahányan játszanak, majd ezeket töröljük
+	 * is, így frissítve az eredményt. Ha már vége a játéknak akkor az eredményt
+	 * írjuk ki. Illetve ha még nem indult el a játék de már megadtuk hányan
+	 * vagyunk, akkor kiírjuk, hogy F1-et legyen szives.
+	 * 
+	 * @param g a grafikus osztály amivel rajzolunk
+	 */
 	private void Draw(Graphics2D g) {
 		if (start == 1 && lastone() > 1) {
 			String msg;
@@ -512,23 +534,25 @@ public class Map extends JPanel implements ActionListener {
 			g.setFont(m);
 			msg = "Game Over!";
 			g.drawString(msg, 60, 50);
-			
+
 		}
-		if(!delay.isRunning()&& start==1) {
+		if (!delay.isRunning() && start == 1) {
 			String msg;
 			msg = "Press F1 to start";
 			Font m = new Font("Times", Font.BOLD, 14);
 			g.setFont(m);
 			g.drawString(msg, 60, 50);
-			
+
 		}
 
 		Toolkit.getDefaultToolkit().sync();
 	}
-/**
- * actionPerformed()	ez egy override, itt van a virtuális loopunk, ahol csekkoljuk az almákat
- * 						a mergeket, hogy van-e elég, illetve ütközést vizsgálunk, majd lépünk.
- */
+
+	/**
+	 * actionPerformed() ez egy override, itt van a virtuális loopunk, ahol
+	 * csekkoljuk az almákat a mergeket, hogy van-e elég, illetve ütközést
+	 * vizsgálunk, majd lépünk.
+	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (A.size() == 0)
